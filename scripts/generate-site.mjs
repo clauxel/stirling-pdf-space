@@ -418,8 +418,10 @@ const pages = new Map([
   ['changelog/index.html', legal('/changelog/', 'Changelog', 'Launch notes and verification checkpoints for Stirling PDF Space.', [
     { title: '2026-06-25 initial build', body: 'Created the independent planner site, pricing gate, D1 analytics path, Polar checkout wiring, SEO files, source notes, and validation checks.' },
     { title: 'Page cluster', body: 'Added homepage, PDF tools, self-host, API automation, secure workflows, pricing, checkout, success, cancel, docs, legal, changelog, and 404 pages.' },
-    { title: 'Acceptance guard', body: 'Validation checks every HTML page for H1, canonical, og:url, analytics script, no visible outbound links, and no stale template wording.' },
-    { title: 'Iteration window', body: 'Day 3 reviews indexing, 404s, CTA events, checkout starts, paid-gate hits, and referral capture. Day 6 reviews GSC and Bing impressions and clicks.' },
+    { title: 'Production domain and search', body: 'Apex HTTPS, www redirect, robots, sitemap, Bing verification file, IndexNow key, GSC sitemap, Bing Webmaster, and IndexNow submissions were verified on launch day.' },
+    { title: 'Remaining blocker', body: 'Polar checkout credentials are not configured yet, so checkout returns paymentConfigured:false instead of pretending payment is live.' },
+    { title: 'Acceptance guard', body: 'Validation checks every HTML page for H1, canonical, og:url, analytics script, no visible outbound links, pricing-first flow, paid gate, and no stale template wording.' },
+    { title: 'Iteration window', body: 'Day 3 reviews indexing, 404s, CTA events, checkout starts, paid-gate hits, and referral capture. Day 6 reviews GSC and Bing impressions and clicks after Polar is configured.' },
   ])],
   ['404/index.html', notFound()],
 ])
