@@ -33,6 +33,8 @@ npm test
 
 Validation covers static SEO, canonical and Open Graph URLs, one H1 per page, no visible outbound CTA links, D1 analytics storage behavior, paid planner gate, Polar checkout wiring, access-token unlock, facts JSON, 404 handling, pricing tabs, and stale-template text.
 
+Search launch evidence is stored in `search-submission-result.json`: GSC domain and URL-prefix sitemap submissions, Bing Webmaster verification/feed/URL batch, and IndexNow URL batch.
+
 ## Deployment
 
 Cloudflare Worker deployment is configured in `wrangler.toml` for `stirling-pdf.space` and `www.stirling-pdf.space`. Production completion requires Cloudflare zone/DNS/HTTPS, D1 binding, Polar checkout secrets, apex/www verification, GSC, Bing, IndexNow, public GitHub repo, independent docs repo, registry update, and live user-flow validation.
