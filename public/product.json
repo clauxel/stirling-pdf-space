@@ -1,0 +1,39 @@
+{
+  "slug": "stirling-pdf-space",
+  "brand": "Stirling PDF Space",
+  "domain": "stirling-pdf.space",
+  "canonicalOrigin": "https://stirling-pdf.space",
+  "relationship": "independent_unofficial_reference",
+  "upstream": {
+    "repo": "https://github.com/Stirling-Tools/Stirling-PDF",
+    "docs": "https://docs.stirlingpdf.com/",
+    "site": "https://www.stirlingpdf.com/",
+    "license": "Open-core; MIT for most repository code with listed subdirectory exceptions"
+  },
+  "pricing": {
+    "defaultBilling": "annual",
+    "plans": {
+      "starter": {
+        "monthly": 9,
+        "annualMonthlyEquivalent": 4.5,
+        "annualDueToday": 54
+      },
+      "pro": {
+        "monthly": 29,
+        "annualMonthlyEquivalent": 14.5,
+        "annualDueToday": 174
+      },
+      "enterprise": {
+        "monthly": 59,
+        "annualMonthlyEquivalent": 29.5,
+        "annualDueToday": 354
+      }
+    },
+    "note": "Payments are one-time and do not automatically renew."
+  },
+  "paths": {
+    "pricingPath": "https://stirling-pdf.space/pricing/",
+    "checkoutPath": "https://stirling-pdf.space/checkout/",
+    "accessPath": "https://stirling-pdf.space/api/access"
+  }
+}

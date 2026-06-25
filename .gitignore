@@ -1,0 +1,9 @@
+node_modules
+.wrangler
+.verification
+backlink-evidence
+.env
+.env.*
+.dev.vars
+.preview.log
+.DS_Store

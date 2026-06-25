@@ -1,0 +1,904 @@
+const CONFIG = {
+  slug: 'stirling-pdf-space',
+  brand: 'Stirling PDF Space',
+  domain: 'stirling-pdf.space',
+  canonicalOrigin: 'https://stirling-pdf.space',
+  support: 'support@aigeamy.com',
+  officialSite: 'https://www.stirlingpdf.com/',
+  officialDocs: 'https://docs.stirlingpdf.com/',
+  officialRepo: 'https://github.com/Stirling-Tools/Stirling-PDF',
+  license: 'Open-core; MIT for most repository code with listed subdirectory exceptions',
+  summary: 'Independent, unofficial Stirling PDF workflow and deployment planner for teams standardizing browser, desktop, self-hosted, and API-driven PDF operations.',
+  endpoints: {
+    merge: 'Combine PDF packets, exhibits, or appendices while preserving a reviewable order.',
+    split: 'Separate page ranges, chapters, invoices, or signed packets into smaller files.',
+    convert: 'Plan image, Office, HTML, Markdown, and PDF/A conversion paths before production.',
+    ocr: 'Route scanned PDFs through OCR when searchable text or accessibility review is needed.',
+    compress: 'Reduce file size while keeping readable output for email, portals, or archives.',
+    redact: 'Choose redaction, watermarking, metadata, and security steps for sensitive documents.',
+    sign: 'Prepare signature, certification, and validation steps for routed PDF workflows.',
+    api: 'Map repeatable PDF operations to the Stirling PDF API or a self-hosted automation queue.',
+    self_host: 'Review Docker, authentication, storage, update, backup, and network controls.',
+  },
+  defaultPlanId: 'pro',
+  defaultBilling: 'annual',
+  plans: {
+    starter: {
+      id: 'starter',
+      name: 'Starter',
+      monthlyAmountCents: 900,
+      currency: 'USD',
+      defaultBilling: 'annual',
+      allowedBilling: ['monthly', 'annual'],
+      summary: 'One PDF workflow planning report for a solo builder or operations owner.',
+    },
+    pro: {
+      id: 'pro',
+      name: 'Pro',
+      monthlyAmountCents: 2900,
+      annualDiscountMultiplier: 0.5,
+      currency: 'USD',
+      defaultBilling: 'annual',
+      allowedBilling: ['monthly', 'annual'],
+      summary: 'A reviewable annual PDF operations plan, source notes, and rollout checklist for a team.',
+    },
+    enterprise: {
+      id: 'enterprise',
+      name: 'Enterprise',
+      monthlyAmountCents: 5900,
+      currency: 'USD',
+      defaultBilling: 'annual',
+      allowedBilling: ['monthly', 'annual'],
+      summary: 'Governance notes, self-host review, and stakeholder-ready PDF evidence for larger teams.',
+    },
+  },
+}
+
+const ANNUAL_DISCOUNT_MULTIPLIER = 0.5
+const POLAR_API_BASE = 'https://api.polar.sh'
+const POLAR_ACCESS_TOKEN_KEYS = ['POLAR_ACCESS_TOKEN', 'POLAR_API_KEY', 'POLAR_TOKEN']
+const POLAR_GENERIC_PRODUCT_ID_KEYS = ['POLAR_PRODUCT_ID', 'POLAR_DEFAULT_PRODUCT_ID', 'POLAR_STIRLING_PDF_SPACE_PRODUCT_ID']
+const POLAR_CHECKOUT_LINK_KEYS = {
+  'starter:monthly': ['POLAR_CHECKOUT_URL_STARTER_MONTHLY', 'POLAR_STARTER_MONTHLY_CHECKOUT_URL'],
+  'starter:annual': ['POLAR_CHECKOUT_URL_STARTER_ANNUAL', 'POLAR_STARTER_ANNUAL_CHECKOUT_URL'],
+  'pro:monthly': ['POLAR_CHECKOUT_URL_PRO_MONTHLY', 'POLAR_PRO_MONTHLY_CHECKOUT_URL'],
+  'pro:annual': ['POLAR_CHECKOUT_URL_PRO_ANNUAL', 'POLAR_PRO_ANNUAL_CHECKOUT_URL'],
+  'enterprise:monthly': ['POLAR_CHECKOUT_URL_ENTERPRISE_MONTHLY', 'POLAR_ENTERPRISE_MONTHLY_CHECKOUT_URL'],
+  'enterprise:annual': ['POLAR_CHECKOUT_URL_ENTERPRISE_ANNUAL', 'POLAR_ENTERPRISE_ANNUAL_CHECKOUT_URL'],
+}
+const POLAR_PRODUCT_ID_KEYS = {
+  'starter:monthly': ['POLAR_PRODUCT_ID_STARTER_MONTHLY', 'POLAR_STARTER_MONTHLY_PRODUCT_ID'],
+  'starter:annual': ['POLAR_PRODUCT_ID_STARTER_ANNUAL', 'POLAR_STARTER_ANNUAL_PRODUCT_ID'],
+  'pro:monthly': ['POLAR_PRODUCT_ID_PRO_MONTHLY', 'POLAR_PRO_MONTHLY_PRODUCT_ID'],
+  'pro:annual': ['POLAR_PRODUCT_ID_PRO_ANNUAL', 'POLAR_PRO_ANNUAL_PRODUCT_ID'],
+  'enterprise:monthly': ['POLAR_PRODUCT_ID_ENTERPRISE_MONTHLY', 'POLAR_ENTERPRISE_MONTHLY_PRODUCT_ID'],
+  'enterprise:annual': ['POLAR_PRODUCT_ID_ENTERPRISE_ANNUAL', 'POLAR_ENTERPRISE_ANNUAL_PRODUCT_ID'],
+}
+const ACCESS_SECRET_KEYS = ['STIRLING_PDF_SPACE_ACCESS_SECRET', 'ACCESS_SIGNING_SECRET']
+const ACCESS_TTL_SECONDS = 60 * 60 * 24 * 30
+
+const ALT_HOSTS = new Set(['www.' + CONFIG.domain])
+let analyticsSchemaReady = false
+
+function securityHeaders(request) {
+  const headers = new Headers({
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+    'X-Robots-Tag': 'index, follow',
+  })
+  const origin = request?.headers?.get?.('Origin')
+  if (originAllowed(origin)) {
+    headers.set('Access-Control-Allow-Origin', origin)
+    headers.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    headers.set('Access-Control-Allow-Headers', 'Content-Type')
+    headers.set('Vary', 'Origin')
+  }
+  return headers
+}
+
+function originAllowed(origin) {
+  if (!origin) return false
+  try {
+    const url = new URL(origin)
+    return url.hostname === CONFIG.domain ||
+      ALT_HOSTS.has(url.hostname) ||
+      url.hostname.endsWith('.workers.dev') ||
+      url.hostname.endsWith('.pages.dev') ||
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1'
+  } catch {
+    return false
+  }
+}
+
+function jsonResponse(data, status = 200, request = null) {
+  const headers = securityHeaders(request)
+  headers.set('Content-Type', 'application/json; charset=utf-8')
+  headers.set('Cache-Control', 'no-store')
+  return new Response(JSON.stringify(data), { status, headers })
+}
+
+async function getSecretValue(value) {
+  if (typeof value === 'string') return value.trim()
+  if (value && typeof value.get === 'function') {
+    const resolved = await value.get()
+    return typeof resolved === 'string' ? resolved.trim() : ''
+  }
+  return ''
+}
+
+async function firstSecretEnv(env, ...keys) {
+  for (const key of keys) {
+    const value = await getSecretValue(env?.[key])
+    if (value) return value
+  }
+  return ''
+}
+
+function selectionKey(planId, billing) {
+  return `${planId}:${billing}`
+}
+
+function normalizePlanSelection(body = {}) {
+  const rawPlanId = typeof body.planId === 'string'
+    ? body.planId.split(':')[0]
+    : typeof body.plan === 'string'
+      ? body.plan
+      : CONFIG.defaultPlanId
+  const plan = CONFIG.plans[rawPlanId] || CONFIG.plans[CONFIG.defaultPlanId]
+  const requestedBilling = body.billing === 'monthly' || body.period === 'monthly' ? 'monthly' : 'annual'
+  const billing = plan.allowedBilling.includes(requestedBilling) ? requestedBilling : plan.defaultBilling
+  return { plan, planId: plan.id, billing, period: billing }
+}
+
+function amountFor(plan, billing) {
+  const multiplier = Number.isFinite(plan.annualDiscountMultiplier)
+    ? plan.annualDiscountMultiplier
+    : ANNUAL_DISCOUNT_MULTIPLIER
+  const monthlyCents = billing === 'annual'
+    ? Math.round(plan.monthlyAmountCents * multiplier)
+    : plan.monthlyAmountCents
+  return {
+    monthlyCents,
+    dueTodayCents: billing === 'annual' ? monthlyCents * 12 : monthlyCents,
+  }
+}
+
+function centsToUsd(cents) {
+  return Number((cents / 100).toFixed(2))
+}
+
+function safeText(value, maxLength = 160) {
+  return String(value || '')
+    .replace(/[^\w:./?=&%#+@ -]/g, '')
+    .slice(0, maxLength)
+    .trim()
+}
+
+function hostFromUrl(value) {
+  try {
+    return new URL(String(value || '')).hostname.toLowerCase()
+  } catch {
+    return ''
+  }
+}
+
+function userAgentFamily(value) {
+  const text = String(value || '').toLowerCase()
+  if (!text) return ''
+  if (text.includes('chatgpt-user')) return 'chatgpt-user'
+  if (text.includes('perplexity')) return 'perplexity'
+  if (text.includes('claudebot') || text.includes('anthropic')) return 'anthropic'
+  if (text.includes('googlebot')) return 'googlebot'
+  if (text.includes('bingbot')) return 'bingbot'
+  if (text.includes('facebookexternalhit')) return 'facebook'
+  if (text.includes('twitterbot')) return 'x-twitter'
+  if (text.includes('slackbot')) return 'slack'
+  if (text.includes('chrome')) return 'chrome'
+  if (text.includes('safari')) return 'safari'
+  if (text.includes('firefox')) return 'firefox'
+  return 'other'
+}
+
+function aiReferralSource(referrerHost, userAgent) {
+  const text = `${referrerHost} ${String(userAgent || '').toLowerCase()}`
+  if (/chatgpt|openai/.test(text)) return 'openai-chatgpt'
+  if (/perplexity/.test(text)) return 'perplexity'
+  if (/gemini|bard\.google|google\.com\/search/.test(text)) return 'google-gemini-or-search'
+  if (/copilot|bing\.com|microsoft/.test(text)) return 'microsoft-copilot-or-bing'
+  if (/claude|anthropic/.test(text)) return 'anthropic-claude'
+  if (/phind/.test(text)) return 'phind'
+  return ''
+}
+
+function analyticsConfigured(env) {
+  return Boolean(env?.ANALYTICS_DB?.prepare)
+}
+
+async function ensureAnalyticsSchema(env) {
+  if (analyticsSchemaReady || !env?.ANALYTICS_DB?.prepare) return
+  await env.ANALYTICS_DB.batch([
+    env.ANALYTICS_DB.prepare(`CREATE TABLE IF NOT EXISTS analytics_events (
+      id TEXT PRIMARY KEY,
+      site TEXT NOT NULL,
+      domain TEXT NOT NULL,
+      timestamp_ms INTEGER NOT NULL,
+      day TEXT NOT NULL,
+      event TEXT NOT NULL,
+      path TEXT NOT NULL,
+      target TEXT,
+      product TEXT,
+      provider TEXT,
+      plan_id TEXT,
+      billing TEXT,
+      feature TEXT,
+      scale TEXT,
+      output TEXT,
+      deployment TEXT,
+      referrer_host TEXT,
+      ai_source TEXT,
+      user_agent_family TEXT,
+      country TEXT,
+      raw_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`),
+    env.ANALYTICS_DB.prepare('CREATE INDEX IF NOT EXISTS idx_analytics_events_site_day ON analytics_events (site, day)'),
+    env.ANALYTICS_DB.prepare('CREATE INDEX IF NOT EXISTS idx_analytics_events_event_day ON analytics_events (event, day)'),
+    env.ANALYTICS_DB.prepare('CREATE INDEX IF NOT EXISTS idx_analytics_events_ai_source ON analytics_events (ai_source)'),
+  ])
+  analyticsSchemaReady = true
+}
+
+async function writeAnalyticsEvent(env, event) {
+  const sinks = []
+  if (env?.ANALYTICS_DB?.prepare) {
+    await ensureAnalyticsSchema(env)
+    await env.ANALYTICS_DB.prepare(`INSERT INTO analytics_events (
+      id, site, domain, timestamp_ms, day, event, path, target, product, provider,
+      plan_id, billing, feature, scale, output, deployment, referrer_host,
+      ai_source, user_agent_family, country, raw_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+      crypto.randomUUID(),
+      event.site,
+      event.domain,
+      event.timestamp,
+      event.day,
+      event.event,
+      event.path,
+      event.target,
+      event.product,
+      event.provider,
+      event.planId,
+      event.billing,
+      event.feature,
+      event.scale,
+      event.output,
+      event.deployment,
+      event.referrerHost,
+      event.aiSource,
+      event.userAgentFamily,
+      event.country,
+      JSON.stringify(event),
+      new Date(event.timestamp).toISOString(),
+    ).run()
+    sinks.push('d1')
+  }
+  if (env?.ANALYTICS_EVENTS?.writeDataPoint) {
+    env.ANALYTICS_EVENTS.writeDataPoint({
+      indexes: [CONFIG.slug],
+      blobs: [
+        event.event,
+        event.path,
+        event.aiSource,
+        event.referrerHost,
+        event.planId,
+        event.billing,
+      ],
+      doubles: [event.timestamp],
+    })
+    sinks.push('analytics_engine')
+  }
+  return sinks
+}
+
+function publicPlans() {
+  return Object.fromEntries(
+    Object.entries(CONFIG.plans).map(([id, plan]) => {
+      const entries = {
+        id,
+        name: plan.name,
+        currency: plan.currency,
+        summary: plan.summary,
+        defaultBilling: plan.defaultBilling,
+        allowedBilling: plan.allowedBilling,
+        noAutomaticRenewal: true,
+      }
+      if (plan.allowedBilling.includes('monthly')) {
+        const monthly = amountFor(plan, 'monthly')
+        entries.monthly = {
+          displayMonthlyUsd: centsToUsd(monthly.monthlyCents),
+          dueTodayUsd: centsToUsd(monthly.dueTodayCents),
+          coverage: 'one month',
+          noAutomaticRenewal: true,
+        }
+      }
+      if (plan.allowedBilling.includes('annual')) {
+        const annual = amountFor(plan, 'annual')
+        entries.annual = {
+          displayMonthlyUsd: centsToUsd(annual.monthlyCents),
+          dueTodayUsd: centsToUsd(annual.dueTodayCents),
+          coverage: 'one year',
+          noAutomaticRenewal: true,
+        }
+      }
+      return [id, entries]
+    }),
+  )
+}
+
+function validPolarUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) return ''
+  try {
+    const url = new URL(value.trim())
+    return url.protocol === 'https:' && /(^|\.)polar\.sh$/i.test(url.hostname) ? url.toString() : ''
+  } catch {
+    return ''
+  }
+}
+
+function validPolarApiBase(value) {
+  if (typeof value !== 'string' || !value.trim()) return POLAR_API_BASE
+  try {
+    const url = new URL(value.trim())
+    if (url.protocol === 'https:' && (url.hostname === 'api.polar.sh' || url.hostname === 'sandbox-api.polar.sh')) return url.origin
+  } catch {}
+  return POLAR_API_BASE
+}
+
+function extractPolarCheckoutUrl(payload) {
+  return validPolarUrl(payload?.url) || validPolarUrl(payload?.checkout_url)
+}
+
+async function polarCheckoutLinkFromEnv(env, planId, billing) {
+  return validPolarUrl(await firstSecretEnv(env, ...(POLAR_CHECKOUT_LINK_KEYS[selectionKey(planId, billing)] || []), 'POLAR_CHECKOUT_URL'))
+}
+
+async function polarProductIdFromEnv(env, planId, billing) {
+  return firstSecretEnv(env, ...(POLAR_PRODUCT_ID_KEYS[selectionKey(planId, billing)] || []), ...POLAR_GENERIC_PRODUCT_ID_KEYS)
+}
+
+async function polarApiBaseFromEnv(env) {
+  return validPolarApiBase(await firstSecretEnv(env, 'POLAR_API_BASE'))
+}
+
+async function requestPolarCheckoutSession(apiBase, accessToken, payload) {
+  const response = await fetch(`${apiBase}/v1/checkouts/`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  })
+  const rawText = await response.text()
+  let data = {}
+  if (rawText) {
+    try { data = JSON.parse(rawText) } catch {}
+  }
+  if (!response.ok) throw new Error(typeof data?.message === 'string' ? data.message : 'Checkout session failed.')
+  return data
+}
+
+function checkoutSessionPayload({ productId, planId, billing, plan, amount, origin, orderId, request }) {
+  const customerIp = request.headers.get('CF-Connecting-IP') || (request.headers.get('X-Forwarded-For') || '').split(',')[0].trim()
+  return {
+    products: [productId],
+    prices: {
+      [productId]: [
+        {
+          amount_type: 'fixed',
+          price_amount: amount.dueTodayCents,
+          price_currency: 'usd',
+        },
+      ],
+    },
+    success_url: `${origin}/success/?planId=${encodeURIComponent(planId)}&billing=${encodeURIComponent(billing)}&checkout_id={CHECKOUT_ID}`,
+    return_url: `${origin}/checkout/?planId=${encodeURIComponent(planId)}&billing=${encodeURIComponent(billing)}`,
+    allow_discount_codes: true,
+    require_billing_address: false,
+    ...(customerIp ? { customer_ip_address: customerIp } : {}),
+    metadata: {
+      site: CONFIG.slug,
+      domain: CONFIG.domain,
+      plan: planId,
+      billing,
+      order_id: orderId,
+      product: plan.name,
+    },
+  }
+}
+
+async function polarPaymentConfigured(env) {
+  if (await polarCheckoutLinkFromEnv(env, CONFIG.defaultPlanId, CONFIG.defaultBilling)) return true
+  return Boolean((await firstSecretEnv(env, ...POLAR_ACCESS_TOKEN_KEYS)) && (await polarProductIdFromEnv(env, CONFIG.defaultPlanId, CONFIG.defaultBilling)))
+}
+
+async function accessSigningSecret(env) {
+  return firstSecretEnv(env, ...ACCESS_SECRET_KEYS)
+}
+
+function base64UrlEncodeBytes(bytes) {
+  let binary = ''
+  for (let index = 0; index < bytes.length; index += 0x8000) {
+    binary += String.fromCharCode(...bytes.slice(index, index + 0x8000))
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+function base64UrlEncodeText(text) {
+  return base64UrlEncodeBytes(new TextEncoder().encode(text))
+}
+
+function base64UrlDecodeText(value) {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((value.length + 3) % 4)
+  const binary = atob(padded)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
+  return new TextDecoder().decode(bytes)
+}
+
+async function signAccessPart(part, secret) {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(part))
+  return base64UrlEncodeBytes(new Uint8Array(signature))
+}
+
+function signaturesMatch(a, b) {
+  if (!a || !b || a.length !== b.length) return false
+  let diff = 0
+  for (let index = 0; index < a.length; index += 1) diff |= a.charCodeAt(index) ^ b.charCodeAt(index)
+  return diff === 0
+}
+
+async function createAccessToken(env, data) {
+  const secret = await accessSigningSecret(env)
+  if (!secret) return ''
+  const payload = {
+    site: CONFIG.slug,
+    planId: data.planId || CONFIG.defaultPlanId,
+    billing: data.billing || CONFIG.defaultBilling,
+    checkoutId: data.checkoutId || '',
+    exp: Math.floor(Date.now() / 1000) + ACCESS_TTL_SECONDS,
+  }
+  const payloadPart = base64UrlEncodeText(JSON.stringify(payload))
+  const signature = await signAccessPart(payloadPart, secret)
+  return `${payloadPart}.${signature}`
+}
+
+async function verifyAccessToken(env, token) {
+  const secret = await accessSigningSecret(env)
+  if (!secret || typeof token !== 'string' || !token.includes('.')) return false
+  const [payloadPart, signature] = token.split('.')
+  if (!payloadPart || !signature) return false
+  const expected = await signAccessPart(payloadPart, secret)
+  if (!signaturesMatch(signature, expected)) return false
+  try {
+    const payload = JSON.parse(base64UrlDecodeText(payloadPart))
+    return payload.site === CONFIG.slug && Number(payload.exp || 0) > Math.floor(Date.now() / 1000)
+  } catch {
+    return false
+  }
+}
+
+async function requestPolarCheckout(apiBase, accessToken, checkoutId) {
+  const response = await fetch(`${apiBase}/v1/checkouts/${encodeURIComponent(checkoutId)}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  const rawText = await response.text()
+  let data = {}
+  if (rawText) {
+    try { data = JSON.parse(rawText) } catch {}
+  }
+  if (!response.ok) throw new Error(typeof data?.message === 'string' ? data.message : 'Checkout lookup failed.')
+  return data
+}
+
+function polarCheckoutPaid(data) {
+  if (data?.paid === true || data?.is_paid === true) return true
+  const status = String(data?.status || data?.payment_status || data?.payments?.[0]?.status || '').toLowerCase()
+  return ['paid', 'succeeded', 'success', 'completed', 'confirmed'].some((word) => status.includes(word))
+}
+
+async function handleAccess(request, env) {
+  if (request.method !== 'POST') return jsonResponse({ ok: false, error: 'Method not allowed.' }, 405, request)
+  let body = {}
+  try {
+    body = await request.json()
+  } catch {
+    return jsonResponse({ ok: false, error: 'Invalid JSON body.' }, 400, request)
+  }
+  const checkoutId = String(body.checkoutId || body.checkout_id || '').trim()
+  if (!checkoutId) return jsonResponse({ ok: false, error: 'Missing Polar checkout_id.' }, 400, request)
+
+  if (env?.ACCESS_TEST_MODE === 'true' && checkoutId.startsWith('local_paid_')) {
+    const token = await createAccessToken(env, { checkoutId, planId: body.planId, billing: body.billing })
+    return jsonResponse({ ok: Boolean(token), accessToken: token, provider: 'polar', mode: 'test' }, token ? 200 : 503, request)
+  }
+
+  const signingSecret = await accessSigningSecret(env)
+  const accessToken = await firstSecretEnv(env, ...POLAR_ACCESS_TOKEN_KEYS)
+  if (!signingSecret || !accessToken) {
+    return jsonResponse({
+      ok: false,
+      provider: 'polar',
+      error: 'Paid feature access cannot be verified until Polar access and the site access signing secret are configured.',
+      missing: ['POLAR_ACCESS_TOKEN', 'STIRLING_PDF_SPACE_ACCESS_SECRET'],
+    }, 503, request)
+  }
+
+  try {
+    const checkout = await requestPolarCheckout(await polarApiBaseFromEnv(env), accessToken, checkoutId)
+    if (!polarCheckoutPaid(checkout)) {
+      return jsonResponse({ ok: false, provider: 'polar', error: 'Polar checkout is not marked paid yet.' }, 402, request)
+    }
+    const token = await createAccessToken(env, { checkoutId, planId: body.planId, billing: body.billing })
+    return jsonResponse({ ok: true, provider: 'polar', accessToken: token }, 200, request)
+  } catch {
+    return jsonResponse({ ok: false, provider: 'polar', error: 'Polar checkout could not be verified yet.' }, 502, request)
+  }
+}
+
+async function handleCheckout(request, env, requestUrl) {
+  if (request.method !== 'POST') return jsonResponse({ ok: false, error: 'Method not allowed.' }, 405, request)
+
+  let body = {}
+  try {
+    body = await request.json()
+  } catch {
+    return jsonResponse({ ok: false, error: 'Invalid JSON body.' }, 400, request)
+  }
+
+  const { plan, planId, billing, period } = normalizePlanSelection(body)
+  const amount = amountFor(plan, billing)
+  const origin = requestUrl.origin.includes('localhost') || requestUrl.origin.includes('127.0.0.1') ? requestUrl.origin : CONFIG.canonicalOrigin
+  const orderId = `stirling_pdf_space_${planId}_${billing}_${Date.now()}_${Math.random().toString(16).slice(2)}`
+  const checkoutLink = await polarCheckoutLinkFromEnv(env, planId, billing)
+
+  if (checkoutLink) {
+    return jsonResponse({
+      ok: true,
+      provider: 'polar',
+      paymentConfigured: true,
+      checkoutUrl: checkoutLink,
+      planId,
+      billing,
+      period,
+      dueTodayUsd: centsToUsd(amount.dueTodayCents),
+      orderId,
+      successUrl: `${origin}/success/?planId=${encodeURIComponent(planId)}&billing=${encodeURIComponent(billing)}`,
+    }, 200, request)
+  }
+
+  const accessToken = await firstSecretEnv(env, ...POLAR_ACCESS_TOKEN_KEYS)
+  const productId = await polarProductIdFromEnv(env, planId, billing)
+  if (!accessToken || !productId) {
+    return jsonResponse({
+      ok: false,
+      paymentConfigured: false,
+      provider: 'polar',
+      error: 'Polar checkout is not configured yet for this Stirling PDF Space plan.',
+      missing: ['POLAR_CHECKOUT_URL_' + planId.toUpperCase() + '_' + billing.toUpperCase(), 'or POLAR_ACCESS_TOKEN plus POLAR_PRODUCT_ID_*'],
+      planId,
+      billing,
+      period,
+      dueTodayUsd: centsToUsd(amount.dueTodayCents),
+    }, 503, request)
+  }
+
+  try {
+    const checkout = await requestPolarCheckoutSession(await polarApiBaseFromEnv(env), accessToken, {
+      ...checkoutSessionPayload({ productId, planId, billing, plan, amount, origin, orderId, request }),
+    })
+    const checkoutUrl = extractPolarCheckoutUrl(checkout)
+    if (!checkoutUrl) throw new Error('Polar did not return a hosted checkout URL.')
+    return jsonResponse({
+      ok: true,
+      provider: 'polar',
+      paymentConfigured: true,
+      checkoutUrl,
+      planId,
+      billing,
+      period,
+      dueTodayUsd: centsToUsd(amount.dueTodayCents),
+      orderId,
+      checkoutSessionId: checkout?.id || '',
+    }, 200, request)
+  } catch {
+    return jsonResponse({
+      ok: false,
+      provider: 'polar',
+      paymentConfigured: true,
+      error: 'Secure Polar checkout could not be created yet.',
+      planId,
+      billing,
+    }, 502, request)
+  }
+}
+
+async function handleAnalytics(request, env, requestUrl) {
+  if (request.method !== 'POST') return jsonResponse({ ok: false, error: 'Method not allowed.' }, 405, request)
+
+  let body = {}
+  try {
+    body = await request.json()
+  } catch {
+    body = {}
+  }
+
+  const referrer = safeText(body.referrer || request.headers.get('Referer') || '', 360)
+  const referrerHost = hostFromUrl(referrer)
+  const userAgent = request.headers.get('User-Agent') || ''
+  const timestamp = Date.now()
+  const event = {
+    site: CONFIG.slug,
+    domain: CONFIG.domain,
+    timestamp,
+    day: new Date(timestamp).toISOString().slice(0, 10),
+    event: safeText(body.event || 'event', 80) || 'event',
+    path: safeText(body.path || requestUrl.pathname, 240) || '/',
+    target: safeText(body.target || '', 240),
+    product: safeText(body.product || CONFIG.slug, 80),
+    provider: safeText(body.provider || '', 40),
+    planId: safeText(body.planId || '', 40),
+    billing: safeText(body.billing || '', 24),
+    feature: safeText(body.feature || '', 80),
+    scale: safeText(body.scale || '', 40),
+    output: safeText(body.output || '', 40),
+    deployment: safeText(body.deployment || '', 40),
+    referrerHost,
+    aiSource: aiReferralSource(referrerHost, userAgent),
+    userAgentFamily: userAgentFamily(userAgent),
+    country: safeText(request.cf?.country || '', 8),
+  }
+
+  let sinks = []
+  try {
+    sinks = await writeAnalyticsEvent(env, event)
+  } catch {
+    return jsonResponse({ ok: false, stored: false, error: 'analytics storage failed' }, 500, request)
+  }
+
+  if (!sinks.length) {
+    return jsonResponse({
+      ok: true,
+      stored: false,
+      provider: 'stirling-pdf-space-analytics',
+      missing: ['ANALYTICS_DB'],
+      message: 'Cloudflare D1 analytics storage is not configured for this deployment.',
+    }, 202, request)
+  }
+
+  return jsonResponse({
+    ok: true,
+    stored: true,
+    provider: 'stirling-pdf-space-analytics',
+    sinks,
+    aiSource: event.aiSource,
+  }, 200, request)
+}
+
+function isLocalRequest(request) {
+  const host = request?.headers?.get?.('Host') || ''
+  const cf = request?.headers?.get?.('CF-Ray') || request?.headers?.get?.('CF-Connecting-IP')
+  return host.startsWith('localhost:') || host.startsWith('127.0.0.1:') || !cf
+}
+
+function maybeRedirectToCanonical(url, request) {
+  if (isLocalRequest(request)) return null
+  if (url.hostname === CONFIG.domain || ALT_HOSTS.has(url.hostname)) {
+    if (url.protocol !== 'https:' || url.hostname !== CONFIG.domain) {
+      const next = new URL(url)
+      next.protocol = 'https:'
+      next.hostname = CONFIG.domain
+      return Response.redirect(next.toString(), 301)
+    }
+  }
+  return null
+}
+
+function planFor(body = {}) {
+  const goal = String(body.goal || 'merge pdf files').toLowerCase()
+  const scale = String(body.scale || 'single').toLowerCase()
+  const output = String(body.output || 'checklist').toLowerCase()
+  const deployment = String(body.deployment || 'cloud').toLowerCase()
+  const needsMerge = /merge|combine|packet|appendix|bundle|join/.test(goal)
+  const needsSplit = /split|extract|range|separate|chapter|invoice/.test(goal)
+  const needsConvert = /convert|office|word|excel|powerpoint|image|html|markdown|pdf\/a|pdfa/.test(goal)
+  const needsOcr = /ocr|scan|searchable|accessibility|text layer/.test(goal)
+  const needsCompress = /compress|reduce|file size|email|portal|optimi[sz]e/.test(goal)
+  const needsRedact = /redact|watermark|metadata|privacy|sensitive|secure|password/.test(goal)
+  const needsSign = /sign|signature|certify|validate|certificate/.test(goal)
+  const needsApi = /api|automation|queue|batch|script|webhook/.test(goal) || scale === 'large'
+  const needsSelfHost = /self|docker|server|sso|auth|storage|backup|network|kubernetes/.test(goal) || deployment === 'self_hosted'
+
+  const endpoints = []
+  if (needsMerge) endpoints.push('merge')
+  if (needsSplit) endpoints.push('split')
+  if (needsConvert) endpoints.push('convert')
+  if (needsOcr) endpoints.push('ocr')
+  if (needsCompress) endpoints.push('compress')
+  if (needsRedact) endpoints.push('redact')
+  if (needsSign) endpoints.push('sign')
+  if (needsApi) endpoints.push('api')
+  if (needsSelfHost) endpoints.push('self_host')
+  if (!endpoints.length) endpoints.push('merge', 'compress', 'redact')
+
+  const uniqueEndpoints = [...new Set(endpoints)]
+  const compliance = [
+    'Classify document sensitivity before upload, storage, API automation, or retention.',
+    'Keep source file names, timestamps, operation settings, and output checksums with the workflow evidence.',
+  ]
+  if (needsSelfHost) {
+    compliance.push('Self-hosting requires authentication, TLS, backup, storage limits, update cadence, and network controls before production.')
+    compliance.push('Review the upstream license and open-core boundary before redistributing modified builds or packaged services.')
+  } else {
+    compliance.push('Use the official Stirling PDF docs and repository as source evidence, while keeping hosted planning support and checkout on stirling-pdf.space.')
+  }
+
+  return {
+    ok: true,
+    product: CONFIG.brand,
+    status: 'planner_ready',
+    recommendedEndpoints: uniqueEndpoints.map((name) => ({ name, purpose: CONFIG.endpoints[name] })),
+    outputMode: output.includes('json') ? 'structured JSON plan with operation metadata' : output,
+    deploymentPath: needsSelfHost ? 'self-host deployment checklist first' : 'browser or API workflow checklist first',
+    nextSteps: [
+      'Run a representative sample PDF through the planned operation order.',
+      'Verify output readability, file size, OCR quality, redaction permanence, and metadata before sharing.',
+      'Add authentication, rate limits, storage retention, backups, and operation logs before production automation.',
+    ],
+    compliance,
+    sourceOfTruth: {
+      repo: CONFIG.officialRepo,
+      docs: CONFIG.officialDocs,
+      officialSite: CONFIG.officialSite,
+      license: CONFIG.license,
+    },
+  }
+}
+
+async function handlePlanner(request, env, requestUrl) {
+  if (request.method !== 'POST') {
+    return jsonResponse({ ok: false, error: 'Use POST with goal, scale, output, and deployment fields.' }, 405, request)
+  }
+  const bearer = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim()
+  if (!await verifyAccessToken(env, bearer)) {
+    const origin = requestUrl.origin.includes('localhost') || requestUrl.origin.includes('127.0.0.1')
+      ? requestUrl.origin
+      : CONFIG.canonicalOrigin
+    return jsonResponse({
+      ok: false,
+      requiresPayment: true,
+      error: 'The planner is a paid feature. Choose a pricing package and complete Polar checkout before using it.',
+      pricingPath: origin + '/pricing/',
+      checkoutPath: origin + '/checkout/',
+      provider: 'polar',
+    }, 402, request)
+  }
+  let body = {}
+  try {
+    body = await request.json()
+  } catch {
+    return jsonResponse({ ok: false, error: 'Invalid JSON body.' }, 400, request)
+  }
+  return jsonResponse(planFor(body), 200, request)
+}
+
+async function runtime(url, env) {
+  const origin = url.origin.includes('localhost') || url.origin.includes('127.0.0.1')
+    ? url.origin
+    : CONFIG.canonicalOrigin
+  return {
+    ok: true,
+    product: CONFIG.brand,
+    mode: 'independent_unofficial_reference',
+    canonicalOrigin: origin,
+    officialSite: CONFIG.officialSite,
+    officialDocs: CONFIG.officialDocs,
+    officialRepo: CONFIG.officialRepo,
+    license: CONFIG.license,
+    plannerEndpoint: origin + '/api/planner',
+    plannerAccess: 'paid_access_required',
+    pricingPath: origin + '/pricing/',
+    checkoutEndpoint: origin + '/api/checkout',
+    accessEndpoint: origin + '/api/access',
+    analyticsEndpoint: origin + '/api/analytics',
+    analyticsConfigured: analyticsConfigured(env),
+    analyticsSignals: ['page_view', 'link_click', 'billing_toggle', 'polar_checkout_begin', 'pricing_required', 'planner_submit'],
+    paymentProvider: 'polar',
+    paymentConfigured: await polarPaymentConfigured(env),
+    featureGateConfigured: Boolean(await accessSigningSecret(env)),
+    defaultPlanId: CONFIG.defaultPlanId,
+    defaultBilling: CONFIG.defaultBilling,
+    pricing: publicPlans(),
+    paymentNote: 'Payments are one-time and do not automatically renew.',
+    contactEmail: CONFIG.support,
+  }
+}
+
+async function withHeaders(response, request) {
+  const headers = new Headers(response.headers)
+  for (const [key, value] of securityHeaders(request)) headers.set(key, value)
+  if (!headers.has('Cache-Control')) {
+    headers.set('Cache-Control', response.status === 200 ? 'public, max-age=300' : 'no-store')
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
+async function serveAsset(request, env) {
+  const response = await env.SITE_ASSETS.fetch(request)
+  if (response.status !== 404) return withHeaders(response, request)
+  const url = new URL(request.url)
+  if (!url.pathname.includes('.') && !url.pathname.endsWith('/')) {
+    const slashUrl = new URL(url)
+    slashUrl.pathname += '/'
+    const slashResponse = await env.SITE_ASSETS.fetch(new Request(slashUrl, request))
+    if (slashResponse.status !== 404) return Response.redirect(slashUrl.toString(), 301)
+  }
+  const notFound = await env.SITE_ASSETS.fetch(new Request(new URL('/404/', url), request))
+  if (notFound.status === 200) {
+    const headers = new Headers(notFound.headers)
+    headers.set('Content-Type', 'text/html; charset=utf-8')
+    headers.set('Cache-Control', 'no-store')
+    for (const [key, value] of securityHeaders(request)) headers.set(key, value)
+    return new Response(notFound.body, { status: 404, headers })
+  }
+  return jsonResponse({ ok: false, error: 'Not found' }, 404, request)
+}
+
+export async function handleRequest(request, env) {
+  const url = new URL(request.url)
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: securityHeaders(request) })
+  const redirect = maybeRedirectToCanonical(url, request)
+  if (redirect) return redirect
+
+  if (url.pathname === '/api/runtime') return jsonResponse(await runtime(url, env), 200, request)
+  if (url.pathname === '/api/planner') return handlePlanner(request, env, url)
+  if (url.pathname === '/api/access') return handleAccess(request, env)
+  if (url.pathname === '/api/checkout' || url.pathname === '/api/polar-checkout') return handleCheckout(request, env, url)
+  if (url.pathname === '/api/polar/webhook') return jsonResponse({ ok: true, provider: 'polar' }, 200, request)
+  if (url.pathname === '/api/analytics') return handleAnalytics(request, env, url)
+  if (url.pathname === '/.well-known/stirling-pdf-space.json') {
+    return jsonResponse({
+      name: CONFIG.brand,
+      relationship: 'independent_unofficial_reference',
+      description: CONFIG.summary,
+      upstream: {
+        site: CONFIG.officialSite,
+        docs: CONFIG.officialDocs,
+        repo: CONFIG.officialRepo,
+        license: CONFIG.license,
+      },
+      capabilities: Object.entries(CONFIG.endpoints).map(([name, purpose]) => ({ name, purpose })),
+    }, 200, request)
+  }
+
+  return serveAsset(request, env)
+}
+
+export default {
+  async fetch(request, env) {
+    return handleRequest(request, env)
+  },
+}

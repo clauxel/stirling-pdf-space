@@ -1,0 +1,22 @@
+# Stirling PDF Space
+
+Stirling PDF Space is an independent, unofficial workflow planner for teams evaluating Stirling PDF operations.
+
+Canonical site: https://stirling-pdf.space/
+Pricing path: https://stirling-pdf.space/pricing/
+Planner access: paid access required after Polar checkout verification.
+Facts JSON: https://stirling-pdf.space/.well-known/stirling-pdf-space.json
+
+Core pages:
+- https://stirling-pdf.space/pdf-tools/ explains PDF operation planning.
+- https://stirling-pdf.space/self-host-stirling-pdf/ explains deployment review.
+- https://stirling-pdf.space/stirling-pdf-api/ explains API automation planning.
+- https://stirling-pdf.space/secure-pdf-workflows/ explains security and retention controls.
+
+Relationship:
+This site is independent and unofficial. Official upstream references are kept as final source notes in the public documentation repository and source notes page, not as conversion paths.
+
+Official Sources:
+- https://github.com/Stirling-Tools/Stirling-PDF
+- https://docs.stirlingpdf.com/
+- https://www.stirlingpdf.com/

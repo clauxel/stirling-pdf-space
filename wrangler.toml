@@ -1,0 +1,26 @@
+name = "stirling-pdf-space"
+main = "worker/index.js"
+compatibility_date = "2026-06-25"
+workers_dev = true
+routes = [
+  { pattern = "stirling-pdf.space/*", zone_name = "stirling-pdf.space" },
+  { pattern = "www.stirling-pdf.space/*", zone_name = "stirling-pdf.space" }
+]
+
+[vars]
+APP_ORIGIN = "https://stirling-pdf.space"
+CANONICAL_HOST = "stirling-pdf.space"
+SITE_MODE = "independent_reference"
+
+[[d1_databases]]
+binding = "ANALYTICS_DB"
+database_name = "stirling-pdf-space-analytics"
+database_id = "fbd3d7b9-c4e8-486e-add4-16cc7700f4ec"
+
+[assets]
+directory = "./public"
+binding = "SITE_ASSETS"
+not_found_handling = "none"
+run_worker_first = [
+  "/*"
+]

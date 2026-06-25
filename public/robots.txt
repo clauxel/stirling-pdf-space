@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://stirling-pdf.space/sitemap.xml
