@@ -1,0 +1,88 @@
+{
+  "generatedAt": "2026-06-25T07:43:17.123Z",
+  "domain": "stirling-pdf.space",
+  "siteUrl": "https://stirling-pdf.space/",
+  "sitemapUrl": "https://stirling-pdf.space/sitemap.xml",
+  "sitemap": {
+    "status": "live",
+    "urlCount": 14,
+    "submittedUrls": [
+      "https://stirling-pdf.space/",
+      "https://stirling-pdf.space/pdf-tools/",
+      "https://stirling-pdf.space/self-host-stirling-pdf/",
+      "https://stirling-pdf.space/stirling-pdf-api/",
+      "https://stirling-pdf.space/pdf-automation/",
+      "https://stirling-pdf.space/secure-pdf-workflows/",
+      "https://stirling-pdf.space/pricing/",
+      "https://stirling-pdf.space/checkout/",
+      "https://stirling-pdf.space/success/",
+      "https://stirling-pdf.space/cancel/",
+      "https://stirling-pdf.space/docs/",
+      "https://stirling-pdf.space/privacy/",
+      "https://stirling-pdf.space/terms/",
+      "https://stirling-pdf.space/changelog/"
+    ]
+  },
+  "gsc": {
+    "property": "sc-domain:stirling-pdf.space",
+    "urlPrefixProperty": "https://stirling-pdf.space/",
+    "sitemapUrl": "https://stirling-pdf.space/sitemap.xml",
+    "verification": {
+      "status": "verified",
+      "method": "DNS_TXT",
+      "txtAction": "created",
+      "id": "dns%3A%2F%2Fstirling-pdf.space"
+    },
+    "domainSitemapStatus": "ok:204",
+    "urlPrefixSitemapStatus": "ok:204",
+    "matchingPropertiesAfter": [
+      {
+        "siteUrl": "https://stirling-pdf.space/",
+        "permissionLevel": "siteOwner"
+      },
+      {
+        "siteUrl": "sc-domain:stirling-pdf.space",
+        "permissionLevel": "siteOwner"
+      }
+    ],
+    "status": "submitted"
+  },
+  "bing": {
+    "status": "submitted",
+    "siteUrl": "https://stirling-pdf.space/",
+    "sitemapUrl": "https://stirling-pdf.space/sitemap.xml",
+    "bingAuthFile": "https://stirling-pdf.space/BingSiteAuth.xml",
+    "matchingSiteBefore": null,
+    "addSite": {
+      "status": "submitted",
+      "httpStatus": 200,
+      "error": ""
+    },
+    "verifySite": {
+      "status": "submitted",
+      "httpStatus": 200,
+      "error": ""
+    },
+    "submitFeed": {
+      "status": "submitted",
+      "httpStatus": 200,
+      "error": ""
+    },
+    "submitUrlBatch": {
+      "status": "submitted",
+      "httpStatus": 200,
+      "error": ""
+    },
+    "matchingSiteAfter": {
+      "url": "https://stirling-pdf.space/",
+      "isVerified": true
+    }
+  },
+  "indexNow": {
+    "status": "submitted",
+    "httpStatus": 202,
+    "keyLocation": "https://stirling-pdf.space/590a3ab02487cffe4cfd55b0df769f65.txt",
+    "urlCount": 14,
+    "error": ""
+  }
+}
