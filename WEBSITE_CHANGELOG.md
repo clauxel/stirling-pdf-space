@@ -16,5 +16,6 @@
 - Cloudflare custom-domain status: zone exists with apex/www proxied A records and Worker routes; Spaceship nameservers were updated to `archer.ns.cloudflare.com` and `sydney.ns.cloudflare.com`.
 - Production blocker: public resolvers return `SERVFAIL` because the parent `.space` zone still publishes DS `23293 13 2 2212AF87BF18A3D18942E3C7643372C30FD51C7BF390BEF5A7D99949 6D90DF04` while Cloudflare DNSSEC is disabled. Spaceship API exposed nameserver metadata but no DNSSEC/DS endpoint, so DS removal/update requires registrar UI or another authorized path before HTTPS/GSC/Bing/IndexNow can complete.
 - Payment blocker: Polar access/API/checkouts were not found in Keychain or environment under the standard names. `/api/checkout` safely returns 503 `paymentConfigured:false` instead of fake checkout success.
+- GitHub: public repo `clauxel/stirling-pdf-space` created and pushed; initial public HEAD `3a86db1`.
 - Search/distribution: pending until the production domain resolves without DNSSEC SERVFAIL.
-- Independent public docs repo: local docs repo and `npm test` passed; public GitHub push pending.
+- Independent public docs repo: `clauxel/stirling-pdf-space-docs` created and pushed; initial public HEAD `3c56c0e`; docs `npm test` passed.
