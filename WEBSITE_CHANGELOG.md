@@ -11,7 +11,7 @@
 - Implemented payment rule: independent `/pricing/` page, Annual/Monthly tabs, Annual selected by default, Annual 50% cheaper than Monthly, one-time/no automatic renewal copy, own-domain checkout API, Polar checkout wiring, and paid planner gate.
 - Implemented data rule: `/api/analytics` writes durable events to Cloudflare D1 when `ANALYTICS_DB` is bound and reports `stored:true` only after D1 insertion.
 - Local verification: `npm test` passed; browser verification passed for desktop homepage, mobile homepage, pricing Annual default, Monthly toggle, and unpaid planner-to-pricing gate.
-- Production deployment: Cloudflare Worker deployed as version `a6c1d159-ae07-4819-9588-1597fd343352`; workers.dev runtime and homepage return 200; `ANALYTICS_DB` is bound to D1 `stirling-pdf-space-analytics` (`fbd3d7b9-c4e8-486e-add4-16cc7700f4ec`).
+- Production deployment: Cloudflare Worker deployed as version `48ddbdf8-5fdb-4e2f-940b-c9bfa8c04f11`; workers.dev runtime and homepage return 200; `ANALYTICS_DB` is bound to D1 `stirling-pdf-space-analytics` (`fbd3d7b9-c4e8-486e-add4-16cc7700f4ec`).
 - Production D1 verification: POST to `/api/analytics` returned `stored:true` with `sinks:["d1"]`; remote D1 query found `codex_d1_verify_stirling_pdf_space` with AI referral classification.
 - Cloudflare custom-domain status: zone exists with apex/www proxied A records and Worker routes; Spaceship nameservers were updated to `archer.ns.cloudflare.com` and `sydney.ns.cloudflare.com`.
 - Production custom-domain verification: apex HTTPS returns 200, www HTTPS returns 301 to apex, homepage/runtime/robots/sitemap/Bing verification file/IndexNow key are live, and no registrar parking response is present.
