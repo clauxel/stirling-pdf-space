@@ -1,0 +1,69 @@
+{
+  "provider": "polar",
+  "site": "stirling-pdf-space",
+  "domain": "stirling-pdf.space",
+  "origin": "https://stirling-pdf.space",
+  "createdAt": "2026-06-25",
+  "products": [
+    {
+      "plan": "starter",
+      "billing": "monthly",
+      "productName": "Stirling PDF Space Starter Monthly",
+      "productId": "db9720f0-2072-47b2-9d0d-186ebc16d805",
+      "priceId": "485041b9-8b26-4477-a062-514ea01abfe8",
+      "amountUsd": "9.00",
+      "checkoutLinkId": "4eff7384-0391-463b-aadc-408b115402c5",
+      "checkoutUrl": "https://buy.polar.sh/polar_cl_U715H454xYaYiWH86BRTgNS4BmDZtVpmwth7D154kee"
+    },
+    {
+      "plan": "starter",
+      "billing": "annual",
+      "productName": "Stirling PDF Space Starter Annual",
+      "productId": "ac5c3d15-5878-4e98-ad4e-924f306323b8",
+      "priceId": "01ffd921-9d7c-4d61-85de-e8737e2e7b94",
+      "amountUsd": "54.00",
+      "checkoutLinkId": "3b0404d3-5584-4087-a62a-7a3b5cab1c36",
+      "checkoutUrl": "https://buy.polar.sh/polar_cl_cKNUFpYLCbeUBcsoIfzCdau5Q5R8KMjv65zto0ppxkf"
+    },
+    {
+      "plan": "pro",
+      "billing": "monthly",
+      "productName": "Stirling PDF Space Pro Monthly",
+      "productId": "b328f8d2-4b45-4267-856d-f1b53a939bfe",
+      "priceId": "f62fd43f-b93b-4200-a087-60b77fe74b7d",
+      "amountUsd": "29.00",
+      "checkoutLinkId": "c6d4dd8f-ace1-459f-bf73-1b244c32686b",
+      "checkoutUrl": "https://buy.polar.sh/polar_cl_wfbxQD6QzX6Fx4FKnbFiu1NMCw2kEzfguJO7m4fJJln"
+    },
+    {
+      "plan": "pro",
+      "billing": "annual",
+      "productName": "Stirling PDF Space Pro Annual",
+      "productId": "386bae27-ebe7-4627-8f17-64a6795c67be",
+      "priceId": "56706d99-e760-4631-a7b0-09c83ab357ba",
+      "amountUsd": "174.00",
+      "checkoutLinkId": "1e483742-6a0d-453f-96f1-5f7695089166",
+      "checkoutUrl": "https://buy.polar.sh/polar_cl_YqiTGrJuC6hkZ2M4N6UJw9KlTSi15WicWWzHK4OBWb6"
+    },
+    {
+      "plan": "enterprise",
+      "billing": "monthly",
+      "productName": "Stirling PDF Space Enterprise Monthly",
+      "productId": "c150a6ca-e81f-4660-bea8-8143ec123da9",
+      "priceId": "21ed2f90-e048-4014-ae0f-218888162a9a",
+      "amountUsd": "59.00",
+      "checkoutLinkId": "5768aa5d-6444-4d4c-9fc4-d688c3d949e1",
+      "checkoutUrl": "https://buy.polar.sh/polar_cl_5LBl1QTgWsJOfLzK2CczOjyZpSR6pA05DI4HS4aRNjt"
+    },
+    {
+      "plan": "enterprise",
+      "billing": "annual",
+      "productName": "Stirling PDF Space Enterprise Annual",
+      "productId": "2f5745f4-a9f1-495f-ad41-5978859cc1b8",
+      "priceId": "9260854e-f74d-44b7-a235-345175d77ab3",
+      "amountUsd": "354.00",
+      "checkoutLinkId": "0e70779e-dc7d-4b74-9c16-1e557d96d329",
+      "checkoutUrl": "https://buy.polar.sh/polar_cl_0JwCw1ZbOQLK5IOF73zhZbzQeo7TPAyDgYqRh2K6g1W"
+    }
+  ]
+}
