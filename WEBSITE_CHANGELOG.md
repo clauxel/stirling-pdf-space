@@ -14,8 +14,8 @@
 - Production deployment: Cloudflare Worker deployed as version `a6c1d159-ae07-4819-9588-1597fd343352`; workers.dev runtime and homepage return 200; `ANALYTICS_DB` is bound to D1 `stirling-pdf-space-analytics` (`fbd3d7b9-c4e8-486e-add4-16cc7700f4ec`).
 - Production D1 verification: POST to `/api/analytics` returned `stored:true` with `sinks:["d1"]`; remote D1 query found `codex_d1_verify_stirling_pdf_space` with AI referral classification.
 - Cloudflare custom-domain status: zone exists with apex/www proxied A records and Worker routes; Spaceship nameservers were updated to `archer.ns.cloudflare.com` and `sydney.ns.cloudflare.com`.
-- Production blocker: public resolvers return `SERVFAIL` because the parent `.space` zone still publishes DS `23293 13 2 2212AF87BF18A3D18942E3C7643372C30FD51C7BF390BEF5A7D99949 6D90DF04` while Cloudflare DNSSEC is disabled. Spaceship API exposed nameserver metadata but no DNSSEC/DS endpoint, so DS removal/update requires registrar UI or another authorized path before HTTPS/GSC/Bing/IndexNow can complete.
+- Production custom-domain verification: apex HTTPS returns 200, www HTTPS returns 301 to apex, homepage/runtime/robots/sitemap/Bing verification file/IndexNow key are live, and no registrar parking response is present.
+- Search submission: GSC domain property `sc-domain:stirling-pdf.space` and URL-prefix property `https://stirling-pdf.space/` are `siteOwner`; sitemap submissions returned `204`; Bing Webmaster AddSite/VerifySite/SubmitFeed/SubmitUrlbatch returned 200 and the site is verified; IndexNow accepted 14 sitemap URLs with HTTP 202.
 - Payment blocker: Polar access/API/checkouts were not found in Keychain or environment under the standard names. `/api/checkout` safely returns 503 `paymentConfigured:false` instead of fake checkout success.
 - GitHub: public repo `clauxel/stirling-pdf-space` created and pushed; initial public HEAD `3a86db1`.
-- Search/distribution: pending until the production domain resolves without DNSSEC SERVFAIL.
 - Independent public docs repo: `clauxel/stirling-pdf-space-docs` created and pushed; initial public HEAD `3c56c0e`; docs `npm test` passed.
