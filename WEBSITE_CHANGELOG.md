@@ -19,3 +19,10 @@
 - Payment configuration: under Owner authorization, six Polar products/checkout links were created or reused for Starter/Pro/Enterprise monthly and annual plans. Cloudflare Worker secrets were configured by name only, `/api/runtime` reports `paymentConfigured:true`, all six `/api/checkout` plan/billing combinations return `200` with a `buy.polar.sh` checkout URL, and Chrome CDP click validation of `Checkout Pro annual` opened the Polar hosted checkout. No real payment was made.
 - GitHub: public repo `clauxel/stirling-pdf-space` created and pushed; initial public HEAD `3a86db1`.
 - Independent public docs repo: `clauxel/stirling-pdf-space-docs` created and pushed; initial public HEAD `3c56c0e`; docs `npm test` passed.
+
+## 2026-07-01 - MiroFish contextual reference
+
+- Added one contextual related-resource link to MiroFish AI Simulator with UTM tracking for stirling-pdf.space.
+- Placement rule: secondary Resources/Source context when available, otherwise the homepage tail; no hero, nav, pricing, checkout, or primary CTA links were changed.
+- SEO safety: brand anchor only, one link per canonical site surface, visible editorial context, and no keyword-stuffed footer/sitewide block.
+- Verification pending: run the site build/deploy workflow and live link checks after all portfolio edits are applied.
